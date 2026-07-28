@@ -3,7 +3,8 @@ import type { Handle } from '@sveltejs/kit';
 
 export const handle: Handle = async ({ event, resolve }) => {
     const isApiRoute = event.url.pathname.startsWith('/api/');
-    const isPublicApiRoute = event.url.pathname === '/api/login';
+    const isPublicApiRoute =
+        event.url.pathname === '/api/login' || event.url.pathname === '/api/cron/poll-feeds';
 
     if (isApiRoute && !isPublicApiRoute) {
         const token = event.cookies.get(COOKIE_NAME);

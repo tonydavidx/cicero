@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import bcrypt from 'bcryptjs';
 import { env } from '$env/dynamic/private';
+import { dev } from '$app/environment';
 import { createSessionToken, COOKIE_NAME, MAX_AGE_SECONDS } from '$lib/server/auth';
 import type { RequestHandler } from './$types';
 
@@ -20,7 +21,7 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
     cookies.set(COOKIE_NAME, token, {
         path: '/',
         httpOnly: true,
-        secure: true,
+        secure: !dev,
         sameSite: 'lax',
         maxAge: MAX_AGE_SECONDS
     });
