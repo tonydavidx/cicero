@@ -12,7 +12,7 @@ export const feeds = pgTable(
 		lastModified: text('last_modified'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-		deletedAt: timestamp('deleted_at', { withTimezone: true })
+		_deleted: boolean('_deleted').notNull().default(false)
 	},
 	(t) => [uniqueIndex('feeds_url_idx').on(t.url), index('feeds_updated_at_idx').on(t.updatedAt)]
 );
@@ -37,7 +37,7 @@ export const articles = pgTable(
 		excerpt: text('excerpt'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
-		deletedAt: timestamp('deleted_at', { withTimezone: true })
+		_deleted: boolean('_deleted').notNull().default(false)
 	},
 	(t) => [
 		uniqueIndex('articles_feed_guid_idx').on(t.feedId, t.guid),
