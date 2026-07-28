@@ -2,6 +2,9 @@
 // for information about these interfaces
 declare global {
 	namespace App {
+		interface Locals {
+			user?: { sub: string;[key: string]: unknown };
+		}
 		// interface Error {}
 		// interface Locals {}
 		// interface PageData {}
@@ -10,4 +13,4 @@ declare global {
 	}
 }
 
-export {};
+export { };
