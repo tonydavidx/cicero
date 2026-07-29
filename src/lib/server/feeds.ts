@@ -2,6 +2,7 @@ import Parser from 'rss-parser';
 import { db } from './db';
 import { feeds, articles } from './db/schema';
 import { eq } from 'drizzle-orm';
+import { safeFetch } from './ssrf';
 
 const parser = new Parser();
 
@@ -10,7 +11,7 @@ export async function pollFeed(feed: typeof feeds.$inferSelect) {
     if (feed.etag) headers['If-None-Match'] = feed.etag;
     if (feed.lastModified) headers['If-Modified-Since'] = feed.lastModified;
 
-    const res = await fetch(feed.url, { headers });
+    const res = await safeFetch(feed.url, { headers });
 
     if (res.status === 304) {
         await db.update(feeds).set({ lastFetchedAt: new Date() }).where(eq(feeds.id, feed.id));

@@ -4,6 +4,7 @@ import { feeds } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import Parser from 'rss-parser';
 import { pollFeed } from '$lib/server/feeds';
+import { safeFetch } from '$lib/server/ssrf';
 import type { RequestHandler } from './$types';
 
 const parser = new Parser();
@@ -31,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
     let title: string | null = null;
     try {
-        const res = await fetch(normalizedUrl);
+        const res = await safeFetch(normalizedUrl);
         if (res.ok) {
             const xml = await res.text();
             const parsed = await parser.parseString(xml);

@@ -86,5 +86,5 @@
     </svg>
   </button>
   <hr />
-  <p class="text-xs text-zinc-200">v.1.1.0</p>
+  <p class="text-xs text-zinc-200">v.1.2.0</p>
 </nav>

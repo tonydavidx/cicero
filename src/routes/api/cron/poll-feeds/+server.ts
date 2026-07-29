@@ -5,8 +5,6 @@ import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
     const auth = request.headers.get('authorization');
-    console.log('expected:', `Bearer ${env.CRON_SECRET}`);
-    console.log('received:', auth);
 
     if (auth !== `Bearer ${env.CRON_SECRET}`) {
         return json({ error: 'Unauthorized' }, { status: 401 });

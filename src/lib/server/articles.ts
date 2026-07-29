@@ -4,6 +4,7 @@ import createDOMPurify from 'dompurify';
 import { db } from './db';
 import { articles } from './db/schema';
 import { eq } from 'drizzle-orm';
+import { safeFetch } from './ssrf';
 
 export async function fetchFullArticle(articleId: string) {
     const article = await db.query.articles.findFirst({
@@ -19,7 +20,7 @@ export async function fetchFullArticle(articleId: string) {
     }
 
     try {
-        const res = await fetch(article.url, {
+        const res = await safeFetch(article.url, {
             headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CiceroReader/1.0)' }
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
