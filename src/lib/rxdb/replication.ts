@@ -8,6 +8,8 @@ async function authedFetch(url: string, init?: RequestInit) {
     const res = await fetch(url, { ...init, credentials: 'include' });
     if (res.status === 401) {
         if (window.location.pathname !== '/login') {
+            // Clear local data so stale cached content doesn't show on re-login
+            getDb().then((db) => db.destroy());
             window.location.href = '/login';
         }
         throw new Error('Unauthorized');
