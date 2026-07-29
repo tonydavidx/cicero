@@ -7,10 +7,14 @@
         toggleStarred,
     } from "$lib/rxdb/queries";
     import type { ArticleDoc, FeedDoc } from "$lib/rxdb/schemas";
+    import { triggerSync } from "$lib/rxdb/replication";
 
     let feeds = $state<FeedDoc[]>([]);
     let articles = $state<ArticleDoc[]>([]);
     let selectedFeedId = $state<string | null>(null);
+    let newFeedUrl = $state("");
+    let addingFeed = $state(false);
+    let addFeedError = $state("");
 
     onMount(() => {
         const unsubFeeds = watchFeeds((f) => (feeds = f));
@@ -24,11 +28,49 @@
         );
         return unsubArticles;
     });
+
+    async function addFeed(e: SubmitEvent) {
+        e.preventDefault();
+        if (!newFeedUrl.trim()) return;
+
+        addingFeed = true;
+        addFeedError = "";
+
+        const res = await fetch("/api/feeds", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url: newFeedUrl.trim() }),
+        });
+
+        addingFeed = false;
+
+        if (res.ok) {
+            newFeedUrl = "";
+            triggerSync();
+        } else {
+            const data = await res
+                .json()
+                .catch(() => ({ message: "Failed to add feed" }));
+            addFeedError = data.message ?? "Failed to add feed";
+        }
+    }
 </script>
 
 <div class="layout">
     <aside class="feeds">
         <h2>Feeds</h2>
+        <form onsubmit={addFeed} class="add-feed">
+            <input
+                type="url"
+                bind:value={newFeedUrl}
+                placeholder="https://example.com/feed.xml"
+                required
+            />
+            <button type="submit" disabled={addingFeed}
+                >{addingFeed ? "Adding…" : "Add"}</button
+            >
+            {#if addFeedError}<p class="error">{addFeedError}</p>{/if}
+        </form>
         <button
             class:active={selectedFeedId === null}
             onclick={() => (selectedFeedId = null)}
@@ -140,5 +182,21 @@
     .article-actions button {
         font-size: 0.8rem;
         padding: 0.25rem 0.5rem;
+    }
+
+    .add-feed {
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+        margin-bottom: 1rem;
+    }
+    .add-feed input {
+        padding: 0.4rem;
+        font-size: 0.85rem;
+    }
+    .add-feed .error {
+        color: #dc2626;
+        font-size: 0.8rem;
+        margin: 0;
     }
 </style>

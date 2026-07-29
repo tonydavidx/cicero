@@ -73,4 +73,23 @@ export async function startReplication() {
     return { feedsReplication, articlesReplication };
 }
 
+let activeReplications: Replications | null = null;
+
+export async function initReplication() {
+    activeReplications = await startReplication();
+
+    // periodic background resync so other devices' changes show up without a manual refresh
+    setInterval(() => {
+        activeReplications?.feedsReplication.reSync();
+        activeReplications?.articlesReplication.reSync();
+    }, 30_000);
+
+    return activeReplications;
+}
+
+export function triggerSync() {
+    activeReplications?.feedsReplication.reSync();
+    activeReplications?.articlesReplication.reSync();
+}
+
 export type Replications = Awaited<ReturnType<typeof startReplication>>;

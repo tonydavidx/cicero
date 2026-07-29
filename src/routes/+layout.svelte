@@ -4,13 +4,13 @@
 	import { onMount } from "svelte";
 	import { browser } from "$app/environment";
 	import { page } from "$app/stores";
-	import { startReplication } from "$lib/rxdb/replication";
+	import { initReplication } from "$lib/rxdb/replication";
 
 	let { children } = $props();
 
 	onMount(() => {
 		if (browser && $page.url.pathname !== "/login") {
-			startReplication().then(() => console.log("replication started"));
+			initReplication().then(() => console.log("replication started"));
 		}
 	});
 </script>
