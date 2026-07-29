@@ -53,16 +53,14 @@
       const data = await res.json();
 
       if (data.status === "fetched") {
-        await doc?.patch({
+        const db = await getDb();
+        const freshDoc = await db.articles.findOne(article.id).exec();
+        await freshDoc?.patch({
           contentFull: data.content,
           contentStatus: "fetched",
           updatedAt: new Date().toISOString(),
         });
       } else {
-        await doc?.patch({
-          contentStatus: "failed",
-          updatedAt: new Date().toISOString(),
-        });
         fetchError = true;
       }
     } catch {
@@ -192,27 +190,27 @@
             {/if}
 
             <div class="mt-8 space-y-4">
-              {#if article.contentStatus !== "failed"}
+              {#if article.contentStatus !== "fetched"}
                 <button
                   onclick={fetchFull}
                   disabled={fetchingFull}
-                  class="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800/50 disabled:text-zinc-600 text-zinc-200 rounded-xl transition-colors text-sm font-medium disabled:cursor-not-allowed"
-                >
-                  {#if fetchingFull}
-                    <div class="w-4 h-4 border-2 border-zinc-500 border-t-emerald-400 rounded-full animate-spin"></div>
-                    Loading full article...
-                  {:else}
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                      <polyline points="7 10 12 15 17 10" />
-                      <line x1="12" y1="15" x2="12" y2="3" />
-                    </svg>
-                    View full content
-                  {/if}
-                </button>
+                class="inline-flex items-center gap-2 px-5 py-2.5 bg-zinc-800 hover:bg-zinc-700 disabled:bg-zinc-800/50 disabled:text-zinc-600 text-zinc-200 rounded-xl transition-colors text-sm font-medium disabled:cursor-not-allowed"
+              >
+                {#if fetchingFull}
+                  <div class="w-4 h-4 border-2 border-zinc-500 border-t-emerald-400 rounded-full animate-spin"></div>
+                  Loading full article...
+                {:else}
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  View full content
+                {/if}
+              </button>
               {/if}
 
-              {#if fetchError || article.contentStatus === "failed"}
+              {#if fetchError}
                 <div class="flex items-center gap-2 text-sm text-zinc-500">
                   <svg class="w-4 h-4 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <circle cx="12" cy="12" r="10" />
