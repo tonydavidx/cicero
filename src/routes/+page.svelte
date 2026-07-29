@@ -3,23 +3,26 @@
     import {
         watchFeeds,
         watchArticles,
-        toggleRead,
-        toggleStarred,
+        watchStarredArticles,
     } from "$lib/rxdb/queries";
     import type { ArticleDoc, FeedDoc } from "$lib/rxdb/schemas";
     import { triggerSync } from "$lib/rxdb/replication";
+    import MenuColumn from "$lib/components/MenuColumn.svelte";
+    import FeedList from "$lib/components/FeedList.svelte";
+    import ArticleList from "$lib/components/ArticleList.svelte";
+    import AddFeedDialog from "$lib/components/AddFeedDialog.svelte";
+    import ArticleModal from "$lib/components/ArticleModal.svelte";
 
+    let activeTab = $state<"feeds" | "saved">("feeds");
     let feeds = $state<FeedDoc[]>([]);
     let articles = $state<ArticleDoc[]>([]);
     let selectedFeedId = $state<string | null>(null);
-    let newFeedUrl = $state("");
-    let addingFeed = $state(false);
-    let addFeedError = $state("");
+    let showAddDialog = $state(false);
+    let selectedArticleId = $state<string | null>(null);
 
     onMount(() => {
         const unsubFeeds = watchFeeds((f) => (feeds = f));
 
-        // poll all feeds for new articles on page load, then sync results down
         fetch("/api/feeds/refresh-all", { method: "POST" })
             .then(() => triggerSync())
             .catch(() => {});
@@ -28,181 +31,95 @@
     });
 
     $effect(() => {
-        const unsubArticles = watchArticles(
-            selectedFeedId,
-            (a) => (articles = a),
-        );
-        return unsubArticles;
+        if (activeTab === "feeds") {
+            const unsub = watchArticles(selectedFeedId, (a) => (articles = a));
+            return unsub;
+        } else {
+            const unsub = watchStarredArticles((a) => (articles = a));
+            return unsub;
+        }
     });
 
-    async function addFeed(e: SubmitEvent) {
-        e.preventDefault();
-        if (!newFeedUrl.trim()) return;
-
-        addingFeed = true;
-        addFeedError = "";
-
+    async function addFeed(url: string) {
         const res = await fetch("/api/feeds", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url: newFeedUrl.trim() }),
+            body: JSON.stringify({ url }),
         });
 
-        addingFeed = false;
-
         if (res.ok) {
-            newFeedUrl = "";
             triggerSync();
         } else {
             const data = await res
                 .json()
                 .catch(() => ({ message: "Failed to add feed" }));
-            addFeedError = data.message ?? "Failed to add feed";
+            throw new Error(data.message ?? "Failed to add feed");
         }
     }
+
+    let pageTitle = $derived(
+        activeTab === "saved"
+            ? "Saved Articles"
+            : selectedFeedId === null
+              ? "All Articles"
+              : (feeds.find((f) => f.id === selectedFeedId)?.title ??
+                    "Articles"),
+    );
 </script>
 
-<div class="layout">
-    <aside class="feeds">
-        <h2>Feeds</h2>
-        <form onsubmit={addFeed} class="add-feed">
-            <input
-                type="url"
-                bind:value={newFeedUrl}
-                placeholder="https://example.com/feed.xml"
-                required
-            />
-            <button type="submit" disabled={addingFeed}
-                >{addingFeed ? "Adding…" : "Add"}</button
-            >
-            {#if addFeedError}<p class="error">{addFeedError}</p>{/if}
-        </form>
-        <button
-            class:active={selectedFeedId === null}
-            onclick={() => (selectedFeedId = null)}
-        >
-            All feeds
-        </button>
-        {#each feeds as feed (feed.id)}
-            <button
-                class:active={selectedFeedId === feed.id}
-                onclick={() => (selectedFeedId = feed.id)}
-            >
-                {feed.title ?? feed.url}
-            </button>
-        {/each}
-    </aside>
+<div class="flex h-screen overflow-hidden bg-zinc-950">
+    <MenuColumn
+        {activeTab}
+        onTabChange={(t) => {
+            activeTab = t;
+            selectedFeedId = null;
+        }}
+        onAddClick={() => (showAddDialog = true)}
+    />
 
-    <main class="articles">
-        {#each articles as article (article.id)}
-            <a
-                href={`/articles/${article.id}`}
-                class="article"
-                class:read={article.isRead}
-            >
-                <div class="article-title">{article.title}</div>
-                {#if article.author}<div class="article-author">
-                        {article.author}
-                    </div>{/if}
-                <div class="article-excerpt">{article.excerpt ?? ""}</div>
-                <div class="article-actions">
-                    <button
-                        onclick={(e) => {
-                            e.preventDefault();
-                            toggleRead(article.id, !article.isRead);
-                        }}
+    {#if activeTab === "feeds"}
+        <FeedList {feeds} {selectedFeedId} onFeedSelect={(id) => (selectedFeedId = id)} />
+    {:else}
+        <aside class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col shrink-0">
+            <div class="px-4 py-4 border-b border-zinc-800">
+                <h2 class="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
+                    Saved
+                </h2>
+                <p class="text-xs text-zinc-600 mt-1">
+                    {articles.length} article{articles.length !== 1 ? "s" : ""}
+                </p>
+            </div>
+            <div class="flex-1 flex items-center justify-center">
+                <div class="text-center px-6">
+                    <svg
+                        class="w-10 h-10 mx-auto text-amber-500/40 mb-3"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
                     >
-                        {article.isRead ? "Mark unread" : "Mark read"}
-                    </button>
-                    <button
-                        onclick={(e) => {
-                            e.preventDefault();
-                            toggleStarred(article.id, !article.isStarred);
-                        }}
-                    >
-                        {article.isStarred ? "★ Starred" : "☆ Star"}
-                    </button>
+                        <polygon
+                            points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                        />
+                    </svg>
+                    <p class="text-sm text-zinc-500">Star articles to save them</p>
+                    <p class="text-xs text-zinc-600 mt-1">for later reading</p>
                 </div>
-            </a>
-        {/each}
-    </main>
+            </div>
+        </aside>
+    {/if}
+
+    <ArticleList {articles} {feeds} title={pageTitle} onArticleClick={(id) => (selectedArticleId = id)} />
 </div>
 
-<style>
-    .layout {
-        display: flex;
-        height: 100vh;
-    }
-    .feeds {
-        width: 220px;
-        border-right: 1px solid #e5e5e5;
-        padding: 1rem;
-        overflow-y: auto;
-    }
-    .feeds button {
-        display: block;
-        width: 100%;
-        text-align: left;
-        padding: 0.5rem;
-        border: none;
-        background: none;
-        cursor: pointer;
-        border-radius: 4px;
-    }
-    .feeds button.active {
-        background: #eef2ff;
-        font-weight: 600;
-    }
-    .articles {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1rem;
-    }
-    .article {
-        display: block;
-        padding: 1rem;
-        border-bottom: 1px solid #e5e5e5;
-        text-decoration: none;
-        color: inherit;
-    }
-    .article.read {
-        opacity: 0.5;
-    }
-    .article-title {
-        font-weight: 600;
-    }
-    .article-author {
-        font-size: 0.85rem;
-        color: #666;
-    }
-    .article-excerpt {
-        font-size: 0.9rem;
-        color: #444;
-        margin-top: 0.25rem;
-    }
-    .article-actions {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 0.5rem;
-    }
-    .article-actions button {
-        font-size: 0.8rem;
-        padding: 0.25rem 0.5rem;
-    }
+{#if selectedArticleId}
+    <ArticleModal articleId={selectedArticleId} onClose={() => (selectedArticleId = null)} />
+{/if}
 
-    .add-feed {
-        display: flex;
-        flex-direction: column;
-        gap: 0.4rem;
-        margin-bottom: 1rem;
-    }
-    .add-feed input {
-        padding: 0.4rem;
-        font-size: 0.85rem;
-    }
-    .add-feed .error {
-        color: #dc2626;
-        font-size: 0.8rem;
-        margin: 0;
-    }
-</style>
+<AddFeedDialog
+    show={showAddDialog}
+    onClose={() => (showAddDialog = false)}
+    onAdd={addFeed}
+/>
