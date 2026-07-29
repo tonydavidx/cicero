@@ -57,9 +57,17 @@
         <p class="text-sm text-zinc-600 mt-1">Add some feeds to get started</p>
       </div>
     {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {#each articles as article (article.id)}
-          <article class="flex flex-col bg-zinc-900/80 rounded-xl border border-zinc-800/50 hover:border-zinc-700/80 transition-all">
+          <article class="flex flex-col bg-zinc-900/80 rounded-xl border border-zinc-800/50 hover:border-zinc-700/80 transition-all overflow-hidden">
+            {#if article.imageUrl}
+              <img
+                src={article.imageUrl}
+                alt=""
+                class="w-full h-36 object-cover"
+                onerror={(e) => (e.target as HTMLElement).style.display = "none"}
+              />
+            {/if}
             <button
               onclick={() => onArticleClick?.(article.id)}
               class="w-full text-left p-4 flex-1"

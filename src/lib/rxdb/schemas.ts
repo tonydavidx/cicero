@@ -1,6 +1,6 @@
 export const articleSchema: RxJsonSchema<ArticleDoc> = {
     title: 'article schema',
-    version: 0,
+    version: 1,
     primaryKey: 'id',
     type: 'object',
     properties: {
@@ -15,6 +15,7 @@ export const articleSchema: RxJsonSchema<ArticleDoc> = {
         contentFull: { type: ['string', 'null'] },
         contentStatus: { type: 'string', enum: ['unfetched', 'fetched', 'failed'] },
         excerpt: { type: ['string', 'null'] },
+        imageUrl: { type: ['string', 'null'] },
         isRead: { type: 'boolean' },
         isStarred: { type: 'boolean' },
         updatedAt: { type: 'string', maxLength: 30 },
@@ -26,7 +27,7 @@ export const articleSchema: RxJsonSchema<ArticleDoc> = {
 
 export const feedSchema: RxJsonSchema<FeedDoc> = {
     title: 'feed schema',
-    version: 0,
+    version: 1,
     primaryKey: 'id',
     type: 'object',
     properties: {

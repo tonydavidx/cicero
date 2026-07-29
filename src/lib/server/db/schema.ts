@@ -34,7 +34,8 @@ export const articles = pgTable(
 		contentStatus: text('content_status', { enum: ['unfetched', 'fetched', 'failed'] })
 			.notNull()
 			.default('unfetched'),
-		excerpt: text('excerpt'),
+    excerpt: text('excerpt'),
+    imageUrl: text('image_url'),
 		createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 		updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
 		_deleted: boolean('_deleted').notNull().default(false)

@@ -21,7 +21,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const result = await db.execute(sql`
 		SELECT
 			a.id, a.feed_id, a.guid, a.url, a.title, a.author, a.published_at,
-			a.content_raw, a.content_full, a.content_status, a.excerpt, a._deleted,
+			a.content_raw, a.content_full, a.content_status, a.excerpt, a.image_url, a._deleted,
 			COALESCE(s.is_read, false) AS is_read,
 			COALESCE(s.is_starred, false) AS is_starred,
 			GREATEST(a.updated_at, COALESCE(s.updated_at, a.updated_at)) AS effective_updated_at
@@ -46,6 +46,7 @@ export const GET: RequestHandler = async ({ url }) => {
         contentFull: r.content_full as string | null,
         contentStatus: r.content_status as 'unfetched' | 'fetched' | 'failed',
         excerpt: r.excerpt as string | null,
+        imageUrl: r.image_url as string | null,
         isRead: r.is_read as boolean,
         isStarred: r.is_starred as boolean,
         updatedAt: new Date(r.effective_updated_at as string).toISOString(),

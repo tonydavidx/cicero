@@ -36,6 +36,8 @@ export async function pollFeed(feed: typeof feeds.$inferSelect) {
         });
         if (existing) continue;
 
+        const imageUrl = extractArticleImage(item);
+
         await db.insert(articles).values({
             feedId: feed.id,
             guid,
@@ -45,7 +47,8 @@ export async function pollFeed(feed: typeof feeds.$inferSelect) {
             publishedAt: item.isoDate ? new Date(item.isoDate) : null,
             contentRaw: item.content ?? item.contentSnippet ?? null,
             excerpt: item.contentSnippet ?? null,
-            contentStatus: 'unfetched'
+            contentStatus: 'unfetched',
+            imageUrl
         });
         newArticles++;
     }
@@ -62,6 +65,31 @@ export async function pollFeed(feed: typeof feeds.$inferSelect) {
         .where(eq(feeds.id, feed.id));
 
     return { feedId: feed.id, status: 'ok', newArticles };
+}
+
+function extractArticleImage(item: Parser.Item): string | null {
+    const enclosure = item.enclosure;
+    if (enclosure?.url && enclosure.type?.startsWith('image/')) {
+        return enclosure.url;
+    }
+
+    const media = (item as Record<string, unknown>)['media:content'] as
+        | { $?: { url?: string }; url?: string }
+        | undefined;
+    if (media?.$?.url) return media.$.url;
+    if (media?.url) return media.url;
+
+    const mediaThumbnail = (item as Record<string, unknown>)['media:thumbnail'] as
+        | { $?: { url?: string }; url?: string }
+        | undefined;
+    if (mediaThumbnail?.$?.url) return mediaThumbnail.$.url;
+    if (mediaThumbnail?.url) return mediaThumbnail.url;
+
+    const content = item.content ?? item.contentSnippet ?? '';
+    const imgMatch = content.match(/<img[^>]+src=["']([^"']+)["']/i);
+    if (imgMatch) return imgMatch[1];
+
+    return null;
 }
 
 function extractFavicon(parsed: { image?: { url?: string }; icon?: string; logo?: string }, feedUrl: string): string | null {

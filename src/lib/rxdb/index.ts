@@ -2,12 +2,14 @@ import { createRxDatabase, addRxPlugin, type RxDatabase } from 'rxdb';
 import { getRxStorageDexie } from 'rxdb/plugins/storage-dexie';
 import { wrappedValidateAjvStorage } from 'rxdb/plugins/validate-ajv';
 import { RxDBDevModePlugin } from 'rxdb/plugins/dev-mode';
+import { RxDBMigrationSchemaPlugin } from 'rxdb/plugins/migration-schema';
 import { dev } from '$app/environment';
 import { articleSchema, feedSchema, type ArticleDoc, type FeedDoc } from './schemas';
 
 if (dev) {
     addRxPlugin(RxDBDevModePlugin);
 }
+addRxPlugin(RxDBMigrationSchemaPlugin);
 
 export type CiceroCollections = {
     articles: RxDatabase<{ articles: ArticleDoc; feeds: FeedDoc }>['articles'];
@@ -28,8 +30,23 @@ async function createDb() {
     });
 
     await db.addCollections({
-        articles: { schema: articleSchema },
-        feeds: { schema: feedSchema }
+        articles: {
+            schema: articleSchema,
+            migrationStrategies: {
+                1: (oldDoc: Record<string, unknown>) => ({
+                    ...oldDoc,
+                    imageUrl: null
+                })
+            }
+        },
+        feeds: {
+            schema: feedSchema,
+            migrationStrategies: {
+                1: (oldDoc: Record<string, unknown>) => ({
+                    ...oldDoc
+                })
+            }
+        }
     });
 
     return db;

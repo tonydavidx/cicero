@@ -171,6 +171,15 @@
             {/if}
           </div>
 
+          {#if article.imageUrl}
+            <img
+              src={article.imageUrl}
+              alt=""
+              class="w-full max-h-80 object-cover rounded-xl mb-8"
+              onerror={(e) => (e.target as HTMLElement).style.display = "none"}
+            />
+          {/if}
+
           {#if article.contentStatus === "fetched" && article.contentFull}
             <div class="prose prose-invert prose-zinc prose-headings:text-zinc-100 prose-a:text-emerald-400 prose-strong:text-zinc-200 prose-code:text-zinc-300 prose-img:rounded-lg max-w-none">
               {@html article.contentFull}
