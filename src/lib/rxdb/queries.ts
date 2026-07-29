@@ -26,6 +26,17 @@ export function watchArticles(feedId: string | null, callback: (articles: Articl
     return () => unsub?.();
 }
 
+export function watchDownloadedArticles(callback: (articles: ArticleDoc[]) => void) {
+    let unsub: (() => void) | undefined;
+    getDb().then((db) => {
+        const sub = db.articles
+            .find({ selector: { _deleted: false, contentStatus: 'fetched' }, sort: [{ publishedAt: 'desc' }] })
+            .$.subscribe((docs) => callback(docs.map((d) => d.toJSON())));
+        unsub = () => sub.unsubscribe();
+    });
+    return () => unsub?.();
+}
+
 export function watchStarredArticles(callback: (articles: ArticleDoc[]) => void) {
     let unsub: (() => void) | undefined;
     getDb().then((db) => {

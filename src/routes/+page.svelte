@@ -3,6 +3,7 @@
     import {
         watchFeeds,
         watchArticles,
+        watchDownloadedArticles,
         watchStarredArticles,
     } from "$lib/rxdb/queries";
     import type { ArticleDoc, FeedDoc } from "$lib/rxdb/schemas";
@@ -22,6 +23,9 @@
     let selectedArticleId = $state<string | null>(null);
     let sidebarOpen = $state(false);
     let allArticles = $state<ArticleDoc[]>([]);
+    let savedSubTab = $state<"starred" | "downloaded">("starred");
+    let starredArticles = $state<ArticleDoc[]>([]);
+    let downloadedArticles = $state<ArticleDoc[]>([]);
 
     onMount(() => {
         const unsubFeeds = watchFeeds((f) => (feeds = f));
@@ -37,13 +41,21 @@
         };
     });
 
+    let savedArticles = $derived(
+        savedSubTab === "starred" ? starredArticles : downloadedArticles,
+    );
+
     $effect(() => {
         if (activeTab === "feeds") {
             const unsub = watchArticles(selectedFeedId, (a) => (articles = a));
             return unsub;
         } else {
-            const unsub = watchStarredArticles((a) => (articles = a));
-            return unsub;
+            const unsub1 = watchStarredArticles((a) => (starredArticles = a));
+            const unsub2 = watchDownloadedArticles((a) => (downloadedArticles = a));
+            return () => {
+                unsub1();
+                unsub2();
+            };
         }
     });
 
@@ -76,7 +88,9 @@
 
     let pageTitle = $derived(
         activeTab === "saved"
-            ? "Saved Articles"
+            ? savedSubTab === "starred"
+                ? "Starred Articles"
+                : "Downloaded Articles"
             : selectedFeedId === null
               ? "All Articles"
               : (feeds.find((f) => f.id === selectedFeedId)?.title ??
@@ -129,18 +143,22 @@
                     <h2 class="text-xs font-semibold text-zinc-500 uppercase tracking-widest">
                         Saved
                     </h2>
-                    <p class="text-xs text-zinc-600 mt-1">
-                        {articles.length} article{articles.length !== 1 ? "s" : ""}
-                    </p>
                 </div>
-                <div class="flex-1 flex items-center justify-center">
-                    <div class="text-center px-6">
+
+                <nav class="flex flex-col p-2 gap-1">
+                    <button
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left {savedSubTab ===
+                        'starred'
+                            ? 'bg-amber-500/10 text-amber-400'
+                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}"
+                        onclick={() => (savedSubTab = "starred")}
+                    >
                         <svg
-                            class="w-10 h-10 mx-auto text-amber-500/40 mb-3"
+                            class="w-4 h-4 shrink-0"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
-                            stroke-width="1.5"
+                            stroke-width="2"
                             stroke-linecap="round"
                             stroke-linejoin="round"
                         >
@@ -148,16 +166,90 @@
                                 points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
                             />
                         </svg>
-                        <p class="text-sm text-zinc-500">Star articles to save them</p>
-                        <p class="text-xs text-zinc-600 mt-1">for later reading</p>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-medium truncate">Starred</div>
+                            <div class="text-xs text-zinc-500">
+                                {starredArticles.length} article{starredArticles.length !== 1 ? "s" : ""}
+                            </div>
+                        </div>
+                    </button>
+
+                    <button
+                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left {savedSubTab ===
+                        'downloaded'
+                            ? 'bg-emerald-500/10 text-emerald-400'
+                            : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'}"
+                        onclick={() => (savedSubTab = "downloaded")}
+                    >
+                        <svg
+                            class="w-4 h-4 shrink-0"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        >
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                        </svg>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-medium truncate">Downloaded</div>
+                            <div class="text-xs text-zinc-500">
+                                {downloadedArticles.length} article{downloadedArticles.length !== 1 ? "s" : ""}
+                            </div>
+                        </div>
+                    </button>
+                </nav>
+
+                {#if savedSubTab === "starred" && starredArticles.length === 0}
+                    <div class="flex-1 flex items-center justify-center">
+                        <div class="text-center px-6">
+                            <svg
+                                class="w-10 h-10 mx-auto text-amber-500/40 mb-3"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <polygon
+                                    points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"
+                                />
+                            </svg>
+                            <p class="text-sm text-zinc-500">Star articles to save them</p>
+                            <p class="text-xs text-zinc-600 mt-1">for later reading</p>
+                        </div>
                     </div>
-                </div>
+                {:else if savedSubTab === "downloaded" && downloadedArticles.length === 0}
+                    <div class="flex-1 flex items-center justify-center">
+                        <div class="text-center px-6">
+                            <svg
+                                class="w-10 h-10 mx-auto text-emerald-500/40 mb-3"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.5"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            >
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                <polyline points="7 10 12 15 17 10" />
+                                <line x1="12" y1="15" x2="12" y2="3" />
+                            </svg>
+                            <p class="text-sm text-zinc-500">No downloaded articles</p>
+                            <p class="text-xs text-zinc-600 mt-1">Articles with full content will appear here</p>
+                        </div>
+                    </div>
+                {/if}
             </aside>
         {/if}
     </div>
 
     <ArticleList
-        {articles}
+        articles={activeTab === "saved" ? savedArticles : articles}
         {feeds}
         title={pageTitle}
         onArticleClick={(id) => {
