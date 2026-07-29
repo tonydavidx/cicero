@@ -18,6 +18,12 @@
 
     onMount(() => {
         const unsubFeeds = watchFeeds((f) => (feeds = f));
+
+        // poll all feeds for new articles on page load, then sync results down
+        fetch("/api/feeds/refresh-all", { method: "POST" })
+            .then(() => triggerSync())
+            .catch(() => {});
+
         return unsubFeeds;
     });
 
