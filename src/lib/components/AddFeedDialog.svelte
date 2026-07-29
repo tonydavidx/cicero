@@ -39,7 +39,7 @@
   >
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div
-      class="bg-zinc-900 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-zinc-800"
+      class="bg-zinc-900 rounded-2xl w-full max-lg:mx-4 max-w-md p-6 shadow-2xl border border-zinc-800"
       onclick={(e) => e.stopPropagation()}
       onkeydown={(e) => e.key === "Escape" && onClose()}
       role="dialog"

@@ -98,7 +98,7 @@
 
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
-    class="relative w-[92vw] h-[90vh] mx-auto mt-auto mb-auto bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+    class="relative w-full h-full lg:w-[92vw] lg:h-[90vh] lg:mx-auto lg:mt-auto lg:mb-auto bg-zinc-950 lg:border lg:border-zinc-800 lg:rounded-2xl shadow-2xl flex flex-col overflow-hidden"
     onclick={(e) => e.stopPropagation()}
     onkeydown={(e) => e.key === "Escape" && onClose()}
     role="dialog"
