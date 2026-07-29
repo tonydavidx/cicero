@@ -24,6 +24,8 @@ export async function pollFeed(feed: typeof feeds.$inferSelect) {
     const xml = await res.text();
     const parsed = await parser.parseString(xml);
 
+    const faviconUrl = extractFavicon(parsed, feed.url);
+
     let newArticles = 0;
     for (const item of parsed.items) {
         const guid = item.guid ?? item.link ?? item.title;
@@ -54,11 +56,24 @@ export async function pollFeed(feed: typeof feeds.$inferSelect) {
             lastFetchedAt: new Date(),
             etag: res.headers.get('etag') ?? null,
             lastModified: res.headers.get('last-modified') ?? null,
-            title: feed.title ?? parsed.title ?? null
+            title: feed.title ?? parsed.title ?? null,
+            faviconUrl: faviconUrl ?? feed.faviconUrl
         })
         .where(eq(feeds.id, feed.id));
 
     return { feedId: feed.id, status: 'ok', newArticles };
+}
+
+function extractFavicon(parsed: { image?: { url?: string }; icon?: string; logo?: string }, feedUrl: string): string | null {
+    const fromFeed = parsed.image?.url ?? parsed.icon ?? parsed.logo ?? null;
+    if (fromFeed) return fromFeed;
+
+    try {
+        const domain = new URL(feedUrl).hostname;
+        return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+    } catch {
+        return null;
+    }
 }
 
 export async function pollAllFeeds() {

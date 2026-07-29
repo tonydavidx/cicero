@@ -21,15 +21,20 @@
     let showAddDialog = $state(false);
     let selectedArticleId = $state<string | null>(null);
     let sidebarOpen = $state(false);
+    let allArticles = $state<ArticleDoc[]>([]);
 
     onMount(() => {
         const unsubFeeds = watchFeeds((f) => (feeds = f));
+        const unsubAll = watchArticles(null, (a) => (allArticles = a));
 
         fetch("/api/feeds/refresh-all", { method: "POST" })
             .then(() => triggerSync())
             .catch(() => {});
 
-        return unsubFeeds;
+        return () => {
+            unsubFeeds();
+            unsubAll();
+        };
     });
 
     $effect(() => {
@@ -58,6 +63,16 @@
             throw new Error(data.message ?? "Failed to add feed");
         }
     }
+
+    let unreadCounts = $derived.by(() => {
+        const counts: Record<string, number> = {};
+        for (const a of allArticles) {
+            if (!a.isRead) {
+                counts[a.feedId] = (counts[a.feedId] || 0) + 1;
+            }
+        }
+        return counts;
+    });
 
     let pageTitle = $derived(
         activeTab === "saved"
@@ -107,7 +122,7 @@
         />
 
         {#if activeTab === "feeds"}
-            <FeedList {feeds} {selectedFeedId} onFeedSelect={handleFeedSelect} />
+            <FeedList {feeds} {selectedFeedId} {unreadCounts} onFeedSelect={handleFeedSelect} />
         {:else}
             <aside class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col shrink-0">
                 <div class="px-4 py-4 border-b border-zinc-800">
